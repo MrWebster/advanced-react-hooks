@@ -27,13 +27,10 @@ function genericReducer(state, action) {
   }
 }
 
-function useAsync(asyncCallback, initialState) {
+function useAsync(initialState) {
   const [state, dispatch] = React.useReducer(genericReducer, initialState)
 
-  console.log(typeof asyncCallback, asyncCallback)
-
-  React.useEffect(() => {
-    const promise = asyncCallback()
+  const run = React.useCallback(promise => {
     if (!promise) {
       return
     }
@@ -44,10 +41,9 @@ function useAsync(asyncCallback, initialState) {
       data => dispatch({type: 'resolved', data}),
       error => dispatch({type: 'rejected', error}),
     )
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [asyncCallback])
+  }, [])
 
-  return state
+  return {...state, run}
 }
 
 const initialState = pokemonName => ({
@@ -57,16 +53,16 @@ const initialState = pokemonName => ({
 })
 
 function PokemonInfo({pokemonName}) {
-  const callback = React.useCallback(() => {
+  const {data, status, error, run} = useAsync(initialState(pokemonName))
+
+  React.useEffect(() => {
     if (!pokemonName) {
       return
     }
-    return fetchPokemon(pokemonName)
-  }, [pokemonName])
 
-  const state = useAsync(callback, initialState(pokemonName))
-
-  const {data, status, error} = state
+    const pokemonPromise = fetchPokemon(pokemonName)
+    run(pokemonPromise)
+  }, [pokemonName, run])
 
   switch (status) {
     case 'idle':
