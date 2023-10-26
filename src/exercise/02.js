@@ -27,21 +27,48 @@ function genericReducer(state, action) {
   }
 }
 
-function useAsync(initialState) {
-  const [state, dispatch] = React.useReducer(genericReducer, initialState)
+function useSafeDispatch(dispatch) {
+  const mounted = React.useRef(false)
 
-  const run = React.useCallback(promise => {
-    if (!promise) {
-      return
+  React.useEffect(() => {
+    mounted.current = true
+
+    return () => {
+      mounted.current = false
     }
-
-    dispatch({type: 'pending'})
-
-    promise.then(
-      data => dispatch({type: 'resolved', data}),
-      error => dispatch({type: 'rejected', error}),
-    )
   }, [])
+
+  return React.useCallback(
+    (...args) => {
+      console.log('dispatch callback')
+      if (mounted.current) {
+        console.log('dispatch called')
+        dispatch(...args)
+      }
+    },
+    [dispatch],
+  )
+}
+
+function useAsync(initialState) {
+  const [state, unsafeDispatch] = React.useReducer(genericReducer, initialState)
+  const dispatch = useSafeDispatch(unsafeDispatch)
+
+  const run = React.useCallback(
+    promise => {
+      if (!promise) {
+        return
+      }
+
+      dispatch({type: 'pending'})
+
+      promise.then(
+        data => dispatch({type: 'resolved', data}),
+        error => dispatch({type: 'rejected', error}),
+      )
+    },
+    [dispatch],
+  )
 
   return {...state, run}
 }
