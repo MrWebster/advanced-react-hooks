@@ -73,7 +73,7 @@ function PokemonInfo({pokemonName}) {
 
 function PreviousPokemon({onSelect}) {
   // 🐨 get the cache from useContext with PokemonCacheContext
-  const cache = {}
+  const [cache] = React.useContext(PokemonCacheContext)
   return (
     <div>
       Previous Pokemon
